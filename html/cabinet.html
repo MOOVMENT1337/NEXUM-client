@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NEXUM — сессия</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/shell.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <div class="logo">NX<br /><small>NEXUM</small></div>
+      <div class="side-ad"><img src="../assets/steam-side.jpg" alt="" /></div>
+      <button class="bell" id="btnNotif" title="Уведомления" aria-label="Уведомления">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 18a2 2 0 0 1-4 0M6 8a6 6 0 1 1 12 0c0 7 2 7 2 7H4s2 0 2-7"/></svg>
+        <i class="dot" id="notifDot"></i>
+      </button>
+      <div class="theme-row">
+        Переключить тему
+        <button class="switch" id="themeBtn" aria-label="Тема"><i></i></button>
+      </div>
+    </aside>
+
+    <div class="desk">
+        <article class="card user-card">
+          <div class="avatar">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="8" r="3.5"/><path d="M4 18c1.5-3 4-4.5 7-4.5S16.5 15 18 18"/></svg>
+          </div>
+          <div>
+            <h1 id="userName">Гость</h1>
+            <p class="muted" id="userMail"></p>
+          </div>
+        </article>
+        <article class="card status-card">
+          <div>
+            <p class="muted">Текущий статус:</p>
+            <p class="muted" style="margin-top:8px">До смены статуса осталось:</p>
+          </div>
+          <div style="text-align:right">
+            <div class="badge" id="userStatus">СТАНДАРТ</div>
+            <p class="muted" id="statusLeft" style="margin-top:10px">—</p>
+          </div>
+        </article>
+        <div class="span-right">
+          <div class="side-actions">
+            <button class="pill pill-red" id="focusTariffs">ТАРИФЫ</button>
+            <button class="pill pill-ghost" id="openChat">ЧАТ С АДМИНОМ</button>
+          </div>
+          <article class="card tariffs" id="tariffCard">
+            <h2>ТАРИФЫ, ДОСТУПНЫЕ НА ДАННОМ ПК</h2>
+            <div class="tariff-list" id="tariffList"></div>
+          </article>
+        </div>
+
+        <article class="card session">
+          <h2>ИНФОРМАЦИЯ О ТЕКУЩЕЙ СЕССИИ</h2>
+          <p><span class="muted">Оставшиеся минуты:</span> <b id="leftMins">Сессия не начата</b></p>
+          <p><span class="muted">Сессия истекает:</span> <b id="leftUntil">Сессия не начата</b></p>
+        </article>
+        <article class="card account">
+          <h2>ОСНОВНОЙ СЧЁТ</h2>
+          <div class="money">
+            <b id="money">0 ₽</b>
+            <span id="bonus">0 ₽ бонусный счёт</span>
+          </div>
+          <div class="pay-btns">
+            <button class="pay pay-red" id="topMoney">ПОПОЛНИТЬ</button>
+            <button class="pay pay-blue" id="topBonusInfo">БОНУСЫ 5%</button>
+          </div>
+        </article>
+
+        <div class="banners banners-wrap">
+          <article class="banner">
+            <img src="../assets/banner-club.jpg" alt="" />
+            <div class="cap">Совсем скоро здесь появится важная информация о жизни клуба</div>
+          </article>
+          <article class="banner">
+            <img src="../assets/banner-soft.jpg" alt="" />
+            <div class="cap">Совсем скоро здесь появится важная информация о новом софте</div>
+          </article>
+        </div>
+
+      <div class="actions">
+        <button class="act" id="toDesktop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Вернуться к рабочему столу
+        </button>
+        <button class="act" id="pickGame">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+          Выбрать игру
+        </button>
+        <button class="act" id="report">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          Сообщить о проблеме
+        </button>
+        <button class="act" id="startSession">
+          <svg viewBox="0 0 24 24" fill="#22c55e"><path d="M8 6v12l12-6z"/></svg>
+          <span id="startLabel">Начать сессию</span>
+        </button>
+        <button class="act" id="logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2M3 12h11M11 8l4 4-4 4"/></svg>
+          Выйти из аккаунта
+        </button>
+      </div>
+      <div class="foot">Powered by NEXUM SOFTWARE · demo v.1.0.0</div>
+    </div>
+  </div>
+
+  <div class="modal-back hidden" id="payModal">
+    <div class="modal">
+      <h3>Пополнить основной счёт</h3>
+      <p class="muted">Демо-оплата. 5% суммы сразу уйдёт на бонусный счёт.</p>
+      <form class="form" id="payForm">
+        <label>Сумма, ₽
+          <select name="amount">
+            <option value="300">300</option>
+            <option value="500" selected>500</option>
+            <option value="1000">1000</option>
+            <option value="2000">2000</option>
+          </select>
+        </label>
+        <label>Номер карты (любой)
+          <input name="card" placeholder="4242 4242 4242 4242" required />
+        </label>
+        <p class="muted">Платёж не настоящий, реквизиты никуда не отправляются.</p>
+        <div class="btn-row">
+          <button class="btn btn-red" type="submit">Оплатить демо</button>
+          <button class="btn btn-ghost" type="button" id="closePay">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-back hidden" id="chatModal">
+    <div class="modal wide">
+      <h3>Чат с администратором</h3>
+      <div class="chat-box" id="chatBox"></div>
+      <form class="form" id="chatForm">
+        <input name="text" required placeholder="Напиши админу…" maxlength="500" />
+        <div class="btn-row">
+          <button class="btn btn-red" type="submit">Отправить</button>
+          <button class="btn btn-ghost" type="button" id="closeChat">Закрыть</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-back hidden" id="blockModal">
+    <div class="modal">
+      <h3>Аккаунт заблокирован администратором</h3>
+      <p id="blockText" style="margin:12px 0;line-height:1.6"></p>
+      <div class="btn-row">
+        <button class="btn btn-red" id="blockChat">Написать админу</button>
+        <button class="btn btn-ghost" id="blockOut">Выйти</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-back hidden" id="infoModal">
+    <div class="modal">
+      <h3 id="infoTitle"></h3>
+      <p class="muted" id="infoBody" style="margin:10px 0 16px"></p>
+      <button class="btn btn-ghost" id="closeInfo">Ок</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="../scripts/store.js"></script>
+  <script src="../scripts/cabinet.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a32f18fba98c7bf8',t:'MTc4ODA0MzY0Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

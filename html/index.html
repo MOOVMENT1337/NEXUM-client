@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NEXUM — вход в клуб</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/shell.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="card auth-box">
+      <div class="logo" style="margin-bottom:14px">NX</div>
+      <h2>NEXUM Club Shell</h2>
+      <p class="muted" style="margin:8px 0 16px">Демо ПК-клиента: регистрация, два счёта, сессия и чат с админом. Оплата учебная.</p>
+      <div class="tabs">
+        <button class="on" id="tabLogin">Вход</button>
+        <button id="tabReg">Регистрация</button>
+      </div>
+      <form class="form" id="form">
+        <label class="reg-only hidden">ФИО
+          <input name="name" placeholder="Иванов Иван Иванович" />
+        </label>
+        <label>Email
+          <input name="email" type="email" required placeholder="you@mail.ru" />
+        </label>
+        <label>Пароль
+          <input name="pass" type="password" required minlength="4" />
+        </label>
+        <p class="err" id="err"></p>
+        <button class="btn btn-red" type="submit">Продолжить</button>
+      </form>
+      <p class="muted" style="margin-top:14px">Админ: <b>admin@nexum.local</b> / <b>admin123</b></p>
+    </div>
+  </div>
+  <script src="../scripts/store.js"></script>
+  <script>
+    let mode = "login";
+    const form = document.getElementById("form");
+    document.getElementById("tabLogin").onclick = () => set("login");
+    document.getElementById("tabReg").onclick = () => set("reg");
+    function set(m) {
+      mode = m;
+      document.getElementById("tabLogin").classList.toggle("on", m === "login");
+      document.getElementById("tabReg").classList.toggle("on", m === "reg");
+      document.querySelector(".reg-only").classList.toggle("hidden", m !== "reg");
+    }
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const email = fd.get("email");
+      const pass = fd.get("pass");
+      const err = document.getElementById("err");
+      err.textContent = "";
+      const res = mode === "reg"
+        ? Nexum.register({ name: fd.get("name") || "", email, pass })
+        : Nexum.login(email, pass);
+      if (!res.ok) { err.textContent = res.error; return; }
+      location.href = res.user.role === "admin" ? "admin.html" : "cabinet.html";
+    };
+  </script>
+</body>
+</html>
