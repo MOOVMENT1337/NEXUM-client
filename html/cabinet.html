@@ -13,7 +13,11 @@
   <div class="shell">
     <aside class="rail">
       <div class="logo">NX<br /><small>NEXUM</small></div>
-      <div class="side-ad"><img src="../assets/steam-side.jpg" alt="" /></div>
+      <div class="rail-staff" id="railStaff">
+        <button class="rail-btn" id="openAdmin">Админ</button>
+        <button class="rail-btn hidden" id="openStats">Стат</button>
+      </div>
+      <div class="side-ad" aria-hidden="true"></div>
       <button class="bell" id="btnNotif" title="Уведомления" aria-label="Уведомления">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 18a2 2 0 0 1-4 0M6 8a6 6 0 1 1 12 0c0 7 2 7 2 7H4s2 0 2-7"/></svg>
         <i class="dot" id="notifDot"></i>
@@ -167,8 +171,94 @@
     </div>
   </div>
 
+  <div class="admin-drawer hidden" id="adminDrawer">
+    <div class="btn-row" style="justify-content:space-between;align-items:center">
+      <div>
+        <h3 id="adminTitle">Панель администратора</h3>
+        <p class="muted" id="adminHint"></p>
+      </div>
+      <button class="btn btn-ghost" id="closeAdmin">Закрыть</button>
+    </div>
+    <div id="adminUsersView">
+      <div style="overflow:auto;margin-top:12px">
+        <table class="table" id="table">
+          <thead>
+            <tr>
+              <th>Имя</th><th>Email</th><th>Роль</th><th>₽</th><th>Бонусы</th><th>Минуты</th><th>Сессия</th><th>Статус</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="adminStatsView" class="hidden">
+      <div class="stat-grid">
+        <div class="stat-card"><span class="muted">Пополнения</span><b id="stIncome">0</b></div>
+        <div class="stat-card"><span class="muted">Прибыль (реальные ₽ с тарифов)</span><b id="stProfit">0</b></div>
+        <div class="stat-card"><span class="muted">Обороты тарифов</span><b id="stSales">0</b></div>
+        <div class="stat-card"><span class="muted">Клиенты / админы</span><b id="stPeople">0</b></div>
+      </div>
+      <p class="muted">Синие столбцы — сколько пришло на основной счёт. Зелёные — прибыль с покупок тарифов за 7 дней.</p>
+      <div class="chart" id="chart"></div>
+    </div>
+  </div>
+
+  <div class="modal-back hidden" id="userModal">
+    <div class="modal xl">
+      <h3 id="mName"></h3>
+      <p class="muted" id="mMail"></p>
+      <div class="btn-row" style="margin:12px 0">
+        <form class="form" id="minsForm" style="flex:1">
+          <label>Добавить минуты
+            <input name="mins" type="number" min="1" value="60" required />
+          </label>
+          <button class="btn btn-red" type="submit">Начислить минуты</button>
+        </form>
+        <form class="form" id="bonusForm" style="flex:1">
+          <label>Бонусные рубли
+            <input name="bonus" type="number" min="1" value="100" required />
+          </label>
+          <button class="btn btn-red" type="submit">Накинуть бонусы</button>
+        </form>
+        <form class="form hidden" id="moneyForm" style="flex:1">
+          <label>Реальные рубли (не бонусы)
+            <input name="money" type="number" min="1" value="500" required />
+          </label>
+          <button class="btn btn-red" type="submit">Начислить на основной счёт</button>
+        </form>
+      </div>
+      <div class="btn-row hidden" id="ownerRoleRow">
+        <button class="btn btn-red" id="makeAdmin">Выдать админа</button>
+        <button class="btn btn-ghost" id="dropAdmin">Снять админа</button>
+      </div>
+      <form class="form" id="blockForm">
+        <label>Срок блокировки, часов
+          <input name="hours" type="number" min="1" value="24" required />
+        </label>
+        <label>Причина
+          <textarea name="reason" required placeholder="Нарушение правил клуба"></textarea>
+        </label>
+        <div class="btn-row">
+          <button class="btn btn-red" type="submit">Заблокировать</button>
+          <button class="btn btn-red hidden" type="button" id="banForever">Заблокировать навсегда (10 лет)</button>
+          <button class="btn btn-ghost" type="button" id="unban">Снять блок</button>
+        </div>
+      </form>
+      <h3 style="margin:16px 0 8px">Чат</h3>
+      <div class="chat-box" id="adminChatBox"></div>
+      <form class="form" id="adminChatForm">
+        <input name="text" required placeholder="Ответ пользователю" />
+        <div class="btn-row">
+          <button class="btn btn-red" type="submit">Отправить</button>
+          <button class="btn btn-ghost" type="button" id="closeUser">Закрыть</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
   <script src="../scripts/store.js"></script>
   <script src="../scripts/cabinet.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a32f18fba98c7bf8',t:'MTc4ODA0MzY0Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+  <script src="../scripts/admin.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a32f44f479839723',t:'MTc4ODA0NTQ0OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

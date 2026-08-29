@@ -1,4 +1,4 @@
-const DB_KEY = "nexum-club-v2";
+const DB_KEY = "nexum-club-v3";
 
 const TARIFFS = [
   { id: "base", name: "Базовый тариф", price: 170, mins: 60, type: "hour" },
@@ -9,6 +9,12 @@ const TARIFFS = [
   { id: "day", name: "Пакет День (12:00-17:00)", price: 470, mins: 300, type: "pack" },
 ];
 
+const ROLE_LABEL = {
+  owner: "Главный админ",
+  admin: "Админ",
+  user: "Пользователь",
+};
+
 function now() {
   return Date.now();
 }
@@ -17,24 +23,47 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function emptyDb() {
-  const admin = {
-    id: "admin-root",
-    role: "admin",
-    name: "Администратор NEXUM",
-    email: "admin@nexum.local",
-    pass: "admin123",
+function makeUser(extra) {
+  return {
+    id: uid(),
+    role: "user",
+    name: "",
+    email: "",
+    pass: "",
     money: 0,
     bonus: 0,
     minutes: 0,
-    status: "АДМИН",
+    status: "СТАНДАРТ",
     blocked: null,
+    session: null,
+    history: [],
     createdAt: now(),
+    ...extra,
   };
+}
+
+function emptyDb() {
+  const owner = makeUser({
+    id: "owner-root",
+    role: "owner",
+    name: "Главный администратор",
+    email: "owner@nexum.local",
+    pass: "owner123",
+    status: "OWNER",
+  });
+  const admin = makeUser({
+    id: "admin-staff",
+    role: "admin",
+    name: "Администратор клуба",
+    email: "admin@nexum.local",
+    pass: "admin123",
+    status: "АДМИН",
+  });
   return {
-    users: [admin],
+    users: [owner, admin],
     sessionEmail: null,
     chats: {},
+    ledger: [],
     notifications: [],
   };
 }
@@ -43,6 +72,7 @@ function loadDb() {
   try {
     const raw = JSON.parse(localStorage.getItem(DB_KEY));
     if (!raw || !Array.isArray(raw.users)) return emptyDb();
+    raw.ledger = raw.ledger || [];
     return raw;
   } catch {
     return emptyDb();
@@ -54,13 +84,17 @@ function saveDb(db) {
 }
 
 let db = loadDb();
-if (!db.users.some((u) => u.role === "admin")) {
+if (!db.users.some((u) => u.role === "owner")) {
   db = emptyDb();
   saveDb(db);
 }
 
-function users() {
-  return db.users.filter((u) => u.role === "user");
+function isStaff(u) {
+  return u && (u.role === "admin" || u.role === "owner");
+}
+
+function isOwner(u) {
+  return u && u.role === "owner";
 }
 
 function findUser(email) {
@@ -87,21 +121,11 @@ function logout() {
 function register({ name, email, pass }) {
   email = String(email).trim().toLowerCase();
   if (findUser(email)) return { ok: false, error: "Email уже зарегистрирован" };
-  const u = {
-    id: uid(),
-    role: "user",
-    name: name.trim() || email.split("@")[0],
+  const u = makeUser({
+    name: String(name || "").trim() || email.split("@")[0],
     email,
     pass,
-    money: 0,
-    bonus: 0,
-    minutes: 0,
-    status: "СТАНДАРТ",
-    blocked: null,
-    session: null,
-    history: [],
-    createdAt: now(),
-  };
+  });
   db.users.push(u);
   db.sessionEmail = u.email;
   saveDb(db);
@@ -125,6 +149,12 @@ function patchUser(id, fn) {
   return u;
 }
 
+function pushLedger(entry) {
+  db.ledger = db.ledger || [];
+  db.ledger.unshift({ id: uid(), t: now(), ...entry });
+  saveDb(db);
+}
+
 function isBlocked(u) {
   if (!u || !u.blocked) return false;
   if (u.blocked.until && u.blocked.until < now()) {
@@ -139,16 +169,19 @@ function topUpMoney(userId, amount) {
   amount = Math.round(Number(amount));
   if (amount <= 0) return;
   const bonus = Math.round(amount * 0.05);
-  return patchUser(userId, (u) => {
-    u.money += amount;
-    u.bonus += bonus;
-    u.history = u.history || [];
-    u.history.unshift({ t: now(), text: `Пополнение ${amount} ₽ + кэшбэк ${bonus} ₽ бонусами` });
+  const u = patchUser(userId, (x) => {
+    x.money += amount;
+    x.bonus += bonus;
+    x.history = x.history || [];
+    x.history.unshift({ t: now(), text: `Пополнение ${amount} ₽ + кэшбэк ${bonus} ₽ бонусами` });
   });
+  pushLedger({ type: "topup", amount, bonus, userId, note: "Пополнение основного счёта" });
+  return u;
 }
 
 function addBonus(userId, amount, adminName) {
   amount = Math.round(Number(amount));
+  pushLedger({ type: "gift_bonus", amount, userId, note: `Бонусы от ${adminName}` });
   return patchUser(userId, (u) => {
     u.bonus += amount;
     u.history = u.history || [];
@@ -165,14 +198,49 @@ function addMinutes(userId, mins, adminName) {
   });
 }
 
-function blockUser(userId, { hours, reason, admin }) {
-  const until = now() + Number(hours) * 3600 * 1000;
+function addMoney(userId, amount, adminName) {
+  amount = Math.round(Number(amount));
+  pushLedger({ type: "gift_money", amount, userId, note: `Реальные ₽ от ${adminName}` });
+  return patchUser(userId, (u) => {
+    u.money += amount;
+    u.history = u.history || [];
+    u.history.unshift({ t: now(), text: `${adminName} начислил на основной счёт ${amount} ₽` });
+  });
+}
+
+function grantAdmin(userId, adminName) {
+  return patchUser(userId, (u) => {
+    if (u.role === "owner") return;
+    u.role = "admin";
+    u.status = "АДМИН";
+    u.history = u.history || [];
+    u.history.unshift({ t: now(), text: `${adminName} выдал роль администратора` });
+  });
+}
+
+function revokeAdmin(userId, adminName) {
+  return patchUser(userId, (u) => {
+    if (u.role === "owner") return;
+    u.role = "user";
+    u.status = "СТАНДАРТ";
+    u.history = u.history || [];
+    u.history.unshift({ t: now(), text: `${adminName} снял роль администратора` });
+  });
+}
+
+function blockUser(userId, { hours, reason, admin, forever }) {
+  const target = db.users.find((x) => x.id === userId);
+  if (!target || target.role === "owner") return null;
+  if (target.role === "admin" && admin.role !== "owner") return null;
+  const h = forever ? 24 * 365 * 10 : Number(hours);
+  const until = now() + h * 3600 * 1000;
   return patchUser(userId, (u) => {
     u.blocked = {
       byId: admin.id,
       byName: admin.name,
-      reason: reason.trim(),
+      reason: String(reason || "").trim(),
       until,
+      forever: !!forever,
       at: now(),
     };
     if (u.session) u.session = null;
@@ -185,20 +253,15 @@ function unblockUser(userId) {
   });
 }
 
-function chatKey(userId) {
-  return userId;
-}
-
 function messages(userId) {
   db.chats = db.chats || {};
-  return db.chats[chatKey(userId)] || [];
+  return db.chats[userId] || [];
 }
 
 function sendChat({ userId, fromRole, fromName, text }) {
   db.chats = db.chats || {};
-  const key = chatKey(userId);
-  db.chats[key] = db.chats[key] || [];
-  db.chats[key].push({ id: uid(), fromRole, fromName, text: text.trim(), t: now() });
+  db.chats[userId] = db.chats[userId] || [];
+  db.chats[userId].push({ id: uid(), fromRole, fromName, text: String(text).trim(), t: now() });
   saveDb(db);
 }
 
@@ -214,6 +277,14 @@ function spendForPack(u, tariff) {
   u.minutes += tariff.mins;
   u.history = u.history || [];
   u.history.unshift({ t: now(), text: `Оплачен тариф «${tariff.name}» за ${tariff.price} ₽` });
+  pushLedger({
+    type: "sale",
+    amount: tariff.price,
+    profit: fromMoney,
+    bonusSpent: fromBonus,
+    userId: u.id,
+    note: tariff.name,
+  });
   saveDb(db);
   return true;
 }
@@ -245,7 +316,6 @@ function tickSession(u) {
     u.history = u.history || [];
     u.history.unshift({ t: now(), text: "Сессия завершена" });
     saveDb(db);
-    return u;
   }
   return u;
 }
@@ -261,12 +331,50 @@ function stopSession(u) {
   saveDb(db);
 }
 
+function visibleUsers(viewer) {
+  if (!viewer) return [];
+  if (viewer.role === "owner") return db.users.filter((u) => u.id !== viewer.id);
+  if (viewer.role === "admin") return db.users.filter((u) => u.role === "user");
+  return [];
+}
+
+function analytics() {
+  const ledger = db.ledger || [];
+  const income = ledger.filter((x) => x.type === "topup").reduce((s, x) => s + (x.amount || 0), 0);
+  const profit = ledger.filter((x) => x.type === "sale").reduce((s, x) => s + (x.profit || 0), 0);
+  const sales = ledger.filter((x) => x.type === "sale").reduce((s, x) => s + (x.amount || 0), 0);
+  const gifts = ledger.filter((x) => x.type === "gift_money").reduce((s, x) => s + (x.amount || 0), 0);
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    const start = d.getTime();
+    const end = start + 86400000;
+    const label = d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+    const dayIncome = ledger.filter((x) => x.type === "topup" && x.t >= start && x.t < end).reduce((s, x) => s + x.amount, 0);
+    const dayProfit = ledger.filter((x) => x.type === "sale" && x.t >= start && x.t < end).reduce((s, x) => s + (x.profit || 0), 0);
+    days.push({ label, income: dayIncome, profit: dayProfit });
+  }
+  return {
+    income,
+    profit,
+    sales,
+    gifts,
+    users: db.users.filter((u) => u.role === "user").length,
+    staff: db.users.filter((u) => u.role === "admin").length,
+    days,
+  };
+}
+
 window.Nexum = {
   TARIFFS,
+  ROLE_LABEL,
   db,
   saveDb,
   loadDb,
-  users,
+  isStaff,
+  isOwner,
   findUser,
   current,
   login,
@@ -277,6 +385,9 @@ window.Nexum = {
   topUpMoney,
   addBonus,
   addMinutes,
+  addMoney,
+  grantAdmin,
+  revokeAdmin,
   blockUser,
   unblockUser,
   messages,
@@ -284,5 +395,7 @@ window.Nexum = {
   startSession,
   tickSession,
   stopSession,
+  visibleUsers,
+  analytics,
   now,
 };

@@ -1,5 +1,8 @@
 const u0 = Nexum.requireUser();
-if (u0 && u0.role === "admin") location.href = "admin.html";
+if (u0 && Nexum.isStaff(u0)) {
+  document.getElementById("railStaff").classList.add("show");
+  if (Nexum.isOwner(u0)) document.getElementById("openStats").classList.remove("hidden");
+}
 
 let selectedTariff = "base";
 let chatTimer = null;

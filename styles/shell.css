@@ -62,10 +62,35 @@ img { max-width: 100%; display: block; }
 }
 .logo small { font-size: 9px; display: block; letter-spacing: .18em; }
 .side-ad {
-  width: 72px; flex: 1; border-radius: 12px; overflow: hidden;
-  background: #000; position: relative;
+  width: 72px; flex: 1; border-radius: 12px;
+  background: transparent;
 }
-.side-ad img { height: 100%; width: 100%; object-fit: cover; }
+.rail-staff {
+  display: none; flex-direction: column; gap: 8px; width: 100%;
+}
+.rail-staff.show { display: flex; }
+.rail-btn {
+  width: 100%; min-height: 44px; border-radius: 12px;
+  background: var(--panel-2); color: var(--text); font-size: 10px;
+  font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 6px;
+}
+.rail-btn:hover, .rail-btn.on { background: var(--red); color: #fff; }
+
+.admin-drawer {
+  position: fixed; left: 92px; top: 0; bottom: 0; width: min(980px, calc(100vw - 92px));
+  background: var(--panel); border-right: 1px solid var(--line);
+  z-index: 45; overflow: auto; padding: 20px; box-shadow: var(--shadow);
+}
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0 18px; }
+.stat-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.stat-card b { display: block; font-size: 22px; margin-top: 4px; }
+.chart { display: flex; align-items: flex-end; gap: 10px; height: 180px; padding: 8px 0; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.bar-col .bars { display: flex; gap: 4px; align-items: flex-end; height: 140px; width: 100%; justify-content: center; }
+.bar { width: 12px; border-radius: 6px 6px 0 0; min-height: 2px; }
+.bar.in { background: #3b82f6; }
+.bar.pr { background: #22c55e; }
+.modal.xl { width: min(860px, 100%); max-height: 92vh; overflow: auto; }
 .bell {
   width: 44px; height: 44px; border-radius: 12px;
   background: var(--panel-2); color: var(--muted);
@@ -260,4 +285,6 @@ textarea { min-height: 88px; resize: vertical; }
   .span-right, .banners-wrap, .actions, .foot { grid-column: auto; grid-row: auto; }
   .admin-layout { grid-template-columns: 1fr; }
   .banners { grid-template-columns: 1fr; }
+  .admin-drawer { left: 0; width: 100%; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
 }

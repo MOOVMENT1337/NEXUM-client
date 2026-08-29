@@ -32,10 +32,10 @@
         <p class="err" id="err"></p>
         <button class="btn btn-red" type="submit">Продолжить</button>
       </form>
-      <p class="muted" style="margin-top:14px">Админ: <b>admin@nexum.local</b> / <b>admin123</b></p>
+      <p class="muted" style="margin-top:14px">Главный админ: <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="751a021b1007351b100d00185b191a161419">[email&#160;protected]</a></b> / <b>owner123</b><br />Админ: <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9cfdf8f1f5f2dcf2f9e4e9f1b2f0f3fffdf0">[email&#160;protected]</a></b> / <b>admin123</b></p>
     </div>
   </div>
-  <script src="../scripts/store.js"></script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="../scripts/store.js"></script>
   <script>
     let mode = "login";
     const form = document.getElementById("form");
@@ -58,8 +58,8 @@
         ? Nexum.register({ name: fd.get("name") || "", email, pass })
         : Nexum.login(email, pass);
       if (!res.ok) { err.textContent = res.error; return; }
-      location.href = res.user.role === "admin" ? "admin.html" : "cabinet.html";
+      location.href = "cabinet.html";
     };
   </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a32f454c3fb09723',t:'MTc4ODA0NTQ2Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

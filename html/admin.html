@@ -2,80 +2,11 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="0; url=cabinet.html" />
   <title>NEXUM — админ</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../styles/shell.css" />
+  <script>location.replace("cabinet.html");</script>
 </head>
 <body>
-  <div class="admin-layout">
-    <aside class="admin-nav">
-      <div class="logo" style="margin-bottom:16px">NX</div>
-      <p style="font-weight:800;margin-bottom:12px">Админ-панель</p>
-      <p class="muted" id="adminName" style="margin-bottom:16px"></p>
-      <button class="on">Пользователи</button>
-      <button id="logout">Выйти</button>
-    </aside>
-    <main class="admin-main">
-      <h2 style="margin-bottom:6px">Пользователи клуба</h2>
-      <p class="muted" style="margin-bottom:16px">Блок, минуты, бонусы и чат. Основной денежный счёт админ не пополняет — только бонусы.</p>
-      <div style="overflow:auto">
-        <table class="table" id="table">
-          <thead>
-            <tr>
-              <th>Имя</th><th>Email</th><th>₽</th><th>Бонусы</th><th>Минуты</th><th>Статус</th><th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </main>
-  </div>
-
-  <div class="modal-back hidden" id="userModal">
-    <div class="modal wide">
-      <h3 id="mName"></h3>
-      <p class="muted" id="mMail"></p>
-      <div class="btn-row" style="margin:12px 0">
-        <form class="form" id="minsForm" style="flex:1">
-          <label>Добавить минуты
-            <input name="mins" type="number" min="1" value="60" required />
-          </label>
-          <button class="btn btn-red" type="submit">Начислить минуты</button>
-        </form>
-        <form class="form" id="bonusForm" style="flex:1">
-          <label>Бонусные рубли
-            <input name="bonus" type="number" min="1" value="100" required />
-          </label>
-          <button class="btn btn-red" type="submit">Накинуть бонусы</button>
-        </form>
-      </div>
-      <form class="form" id="blockForm">
-        <label>Срок блокировки, часов
-          <input name="hours" type="number" min="1" value="24" required />
-        </label>
-        <label>Причина
-          <textarea name="reason" required placeholder="Нарушение правил клуба"></textarea>
-        </label>
-        <div class="btn-row">
-          <button class="btn btn-red" type="submit">Заблокировать</button>
-          <button class="btn btn-ghost" type="button" id="unban">Снять блок</button>
-        </div>
-      </form>
-      <h3 style="margin:16px 0 8px">Чат</h3>
-      <div class="chat-box" id="chatBox"></div>
-      <form class="form" id="chatForm">
-        <input name="text" required placeholder="Ответ пользователю" />
-        <div class="btn-row">
-          <button class="btn btn-red" type="submit">Отправить</button>
-          <button class="btn btn-ghost" type="button" id="closeUser">Закрыть</button>
-        </div>
-      </form>
-    </div>
-  </div>
-  <div class="toast" id="toast"></div>
-  <script src="../scripts/store.js"></script>
-  <script src="../scripts/admin.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a32f18918af57bf8',t:'MTc4ODA0MzYzMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+  <p>Панель админа теперь в кабинете слева под логотипом. <a href="cabinet.html">Открыть кабинет</a></p>
+</body>
 </html>
