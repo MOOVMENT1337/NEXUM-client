@@ -9,6 +9,9 @@ const TARIFFS = [
   { id: "day", name: "Пакет День (12:00-17:00)", price: 470, mins: 300, type: "pack" },
 ];
 const MIN_TOP_UP = 100;
+const FOREVER_BLOCK_HOURS = 24 * 365 * 30;
+const ADMIN_BLOCK_HOURS = [1, 24, 24 * 7, 24 * 30];
+const OWNER_BLOCK_HOURS = [24 * 30 * 6, 24 * 365];
 
 const ROLE_LABEL = {
   owner: "Главный админ",
@@ -219,6 +222,19 @@ function addMoney(userId, amount, adminName) {
   });
 }
 
+function creditRubles(userId, { type, amount, admin }) {
+  const target = db.users.find((u) => u.id === userId);
+  const normalizedAmount = Number(amount);
+  if (!target || target.role === "owner" || !isStaff(admin)) return null;
+  if (!Number.isInteger(normalizedAmount) || normalizedAmount < 1) return null;
+  if (type === "money") {
+    if (!isOwner(admin)) return null;
+    return addMoney(userId, normalizedAmount, admin.name);
+  }
+  if (type !== "bonus") return null;
+  return addBonus(userId, normalizedAmount, admin.name);
+}
+
 function grantAdmin(userId, adminName) {
   return patchUser(userId, (u) => {
     if (u.role === "owner") return;
@@ -241,17 +257,25 @@ function revokeAdmin(userId, adminName) {
 
 function blockUser(userId, { hours, reason, admin, forever }) {
   const target = db.users.find((x) => x.id === userId);
-  if (!target || target.role === "owner") return null;
+  if (!target || target.role === "owner" || !isStaff(admin)) return null;
   if (target.role === "admin" && admin.role !== "owner") return null;
-  const h = forever ? 24 * 365 * 10 : Number(hours);
+  const normalizedReason = String(reason || "").trim();
+  const isForever = forever === true;
+  if (!normalizedReason || (isForever && !isOwner(admin))) return null;
+  const allowedHours = isOwner(admin)
+    ? [...ADMIN_BLOCK_HOURS, ...OWNER_BLOCK_HOURS]
+    : ADMIN_BLOCK_HOURS;
+  const h = isForever ? FOREVER_BLOCK_HOURS : Number(hours);
+  if (!isForever && (!Number.isInteger(h) || !allowedHours.includes(h))) return null;
   const until = now() + h * 3600 * 1000;
   return patchUser(userId, (u) => {
     u.blocked = {
       byId: admin.id,
       byName: admin.name,
-      reason: String(reason || "").trim(),
+      reason: normalizedReason,
       until,
-      forever: !!forever,
+      forever: isForever,
+      durationHours: isForever ? null : h,
       at: now(),
     };
     if (u.session) u.session = null;
@@ -458,9 +482,8 @@ window.Nexum = {
   requireUser,
   isBlocked,
   topUpMoney,
-  addBonus,
   addMinutes,
-  addMoney,
+  creditRubles,
   grantAdmin,
   revokeAdmin,
   blockUser,
