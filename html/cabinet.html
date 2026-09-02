@@ -218,9 +218,9 @@
     </div>
   </div>
 
-  <div class="modal-back hidden" id="blockModal">
+  <div class="modal-back hidden" id="blockModal" role="dialog" aria-modal="true" aria-labelledby="blockedAccountTitle">
     <div class="modal">
-      <h3>Аккаунт заблокирован администратором</h3>
+      <h3 id="blockedAccountTitle">Аккаунт заблокирован администратором</h3>
       <p id="blockText" style="margin:12px 0;line-height:1.6"></p>
       <div class="btn-row">
         <button class="btn btn-red" id="blockChat">Написать админу</button>
@@ -269,47 +269,25 @@
     </div>
   </div>
 
-  <div class="modal-back hidden" id="userModal">
+  <div class="modal-back hidden" id="userModal" role="dialog" aria-modal="true" aria-labelledby="mName">
     <div class="modal xl">
       <h3 id="mName"></h3>
       <p class="muted" id="mMail"></p>
-      <div class="btn-row" style="margin:12px 0">
-        <form class="form" id="minsForm" style="flex:1" autocomplete="off">
+      <div class="admin-user-actions">
+        <form class="form admin-minutes-form" id="minsForm" autocomplete="off">
           <label>Добавить минуты
             <input name="mins" type="number" min="1" value="60" autocomplete="off" required />
           </label>
           <button class="btn btn-red" type="submit">Начислить минуты</button>
         </form>
-        <form class="form" id="bonusForm" style="flex:1" autocomplete="off">
-          <label>Бонусные рубли
-            <input name="bonus" type="number" min="1" value="100" autocomplete="off" required />
-          </label>
-          <button class="btn btn-red" type="submit">Накинуть бонусы</button>
-        </form>
-        <form class="form hidden" id="moneyForm" style="flex:1" autocomplete="off">
-          <label>Реальные рубли (не бонусы)
-            <input name="money" type="number" min="1" value="500" autocomplete="off" required />
-          </label>
-          <button class="btn btn-red" type="submit">Начислить на основной счёт</button>
-        </form>
+        <button class="btn btn-red" type="button" id="openRublesModal" aria-haspopup="dialog" aria-controls="rublesModal">Начислить рубли</button>
+        <button class="btn btn-red" type="button" id="openBlockModal" aria-haspopup="dialog" aria-controls="adminBlockModal">Заблокировать</button>
+        <button class="btn btn-ghost hidden" type="button" id="unban">Снять блок</button>
       </div>
       <div class="btn-row hidden" id="ownerRoleRow">
-        <button class="btn btn-red" id="makeAdmin">Выдать админа</button>
-        <button class="btn btn-ghost" id="dropAdmin">Снять админа</button>
+        <button class="btn btn-red" type="button" id="makeAdmin">Выдать админа</button>
+        <button class="btn btn-ghost" type="button" id="dropAdmin">Снять админа</button>
       </div>
-      <form class="form" id="blockForm" autocomplete="off">
-        <label>Срок блокировки, часов
-          <input name="hours" type="number" min="1" value="24" autocomplete="off" required />
-        </label>
-        <label>Причина
-          <textarea name="reason" required placeholder="Нарушение правил клуба" autocomplete="off"></textarea>
-        </label>
-        <div class="btn-row">
-          <button class="btn btn-red" type="submit">Заблокировать</button>
-          <button class="btn btn-red hidden" type="button" id="banForever">Заблокировать навсегда (10 лет)</button>
-          <button class="btn btn-ghost" type="button" id="unban">Снять блок</button>
-        </div>
-      </form>
       <h3 style="margin:16px 0 8px">Чат</h3>
       <div class="chat-box" id="adminChatBox"></div>
       <form class="form" id="adminChatForm" autocomplete="off">
@@ -317,6 +295,50 @@
         <div class="btn-row">
           <button class="btn btn-red" type="submit">Отправить</button>
           <button class="btn btn-ghost" type="button" id="closeUser">Закрыть</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-back admin-action-modal hidden" id="rublesModal" role="dialog" aria-modal="true" aria-labelledby="rublesModalTitle">
+    <div class="modal">
+      <h3 id="rublesModalTitle">Начислить рубли</h3>
+      <p class="muted" id="rublesModalHint">Выберите тип счёта и укажите сумму.</p>
+      <form class="form" id="rublesForm" autocomplete="off" novalidate>
+        <label id="rublesTypeLabel">Тип рублей
+          <select id="rublesType" name="type" required>
+            <option value="bonus">Бонусные рубли</option>
+            <option value="money">Настоящие рубли</option>
+          </select>
+        </label>
+        <p class="muted admin-field-note" id="rublesTypeNote"></p>
+        <label>Количество, ₽
+          <input id="rublesAmount" name="amount" type="number" min="1" step="1" inputmode="numeric" placeholder="Введите сумму" autocomplete="off" required />
+        </label>
+        <p class="err admin-form-error" id="rublesError" aria-live="polite"></p>
+        <div class="btn-row modal-actions">
+          <button class="btn btn-red" type="submit">Начислить</button>
+          <button class="btn btn-ghost" type="button" id="closeRublesModal">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-back admin-action-modal hidden" id="adminBlockModal" role="dialog" aria-modal="true" aria-labelledby="adminBlockModalTitle">
+    <div class="modal">
+      <h3 id="adminBlockModalTitle">Заблокировать пользователя</h3>
+      <p class="muted">Выберите срок и укажите причину блокировки.</p>
+      <form class="form" id="blockForm" autocomplete="off" novalidate>
+        <label>Срок блокировки
+          <select id="blockDuration" name="duration" required></select>
+        </label>
+        <label>Причина
+          <textarea id="blockReason" name="reason" required placeholder="Нарушение правил клуба" maxlength="500" autocomplete="off"></textarea>
+        </label>
+        <p class="err admin-form-error" id="blockError" aria-live="polite"></p>
+        <div class="btn-row modal-actions">
+          <button class="btn btn-red" type="submit">Заблокировать</button>
+          <button class="btn btn-ghost" type="button" id="closeBlockModal">Отмена</button>
         </div>
       </form>
     </div>

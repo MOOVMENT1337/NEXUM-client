@@ -28,6 +28,35 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleString("ru-RU");
 }
 
+function formatCount(value, forms) {
+  const mod100 = value % 100;
+  const mod10 = value % 10;
+  if (mod100 >= 11 && mod100 <= 14) return `${value} ${forms[2]}`;
+  if (mod10 === 1) return `${value} ${forms[0]}`;
+  if (mod10 >= 2 && mod10 <= 4) return `${value} ${forms[1]}`;
+  return `${value} ${forms[2]}`;
+}
+
+function formatBlockDuration(block) {
+  if (block.forever) return "НАВСЕГДА";
+  const storedHours = Number(block.durationHours);
+  const elapsedHours = Math.round((Number(block.until) - Number(block.at)) / 3600000);
+  const hours = storedHours > 0
+    ? storedHours
+    : (Number.isFinite(elapsedHours) && elapsedHours > 0 ? elapsedHours : 1);
+  const labels = {
+    1: "1 час",
+    24: "1 день",
+    168: "7 дней",
+    720: "30 дней",
+    4320: "6 месяцев",
+    8760: "1 год",
+  };
+  if (labels[hours]) return labels[hours];
+  if (hours % 24 === 0) return formatCount(hours / 24, ["день", "дня", "дней"]);
+  return formatCount(hours, ["час", "часа", "часов"]);
+}
+
 function sessionPackageOptions() {
   const u = user();
   const credited = Math.floor(Number(u?.minutes) || 0);
@@ -96,7 +125,7 @@ function showBlock(u) {
   $("blockText").innerHTML = `
     <b>Администратор:</b> ${b.byName}<br />
     <b>Когда:</b> ${fmtTime(b.at)}<br />
-    <b>До:</b> ${b.until ? fmtTime(b.until) : "бессрочно"}<br />
+    <b>Срок блокировки:</b> ${formatBlockDuration(b)}<br />
     <b>Причина:</b> ${b.reason}
   `;
   $("blockModal").classList.remove("hidden");

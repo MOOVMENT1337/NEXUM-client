@@ -14,10 +14,22 @@ if (!staff || !Nexum.isStaff(staff)) {
   };
   const fmt = (ts) => new Date(ts).toLocaleString("ru-RU");
   const owner = Nexum.isOwner(staff);
+  const commonBlockDurations = [
+    { value: "1", label: "1 час" },
+    { value: "24", label: "1 день" },
+    { value: "168", label: "7 дней" },
+    { value: "720", label: "30 дней" },
+  ];
+  const ownerBlockDurations = [
+    { value: "4320", label: "6 месяцев" },
+    { value: "8760", label: "1 год" },
+    { value: "forever", label: "Навсегда" },
+  ];
+  let actionDialogTrigger = null;
 
   $("adminHint").textContent = owner
-    ? "Главный админ: клиенты, роли, реальные ₽, вечный бан и аналитика."
-    : "Админ: минуты, бонусы, блок по часам и чат. Реальный баланс недоступен.";
+    ? "Главный админ: клиенты, роли, настоящие ₽, блокировка навсегда и аналитика."
+    : "Админ: минуты, бонусы, блокировка до 30 дней и чат. Настоящие ₽ недоступны.";
 
   function renderTable() {
     const tb = document.querySelector("#table tbody");
@@ -90,30 +102,70 @@ if (!staff || !Nexum.isStaff(staff)) {
     return Nexum.db.users.find((u) => u.id === selectedId);
   }
 
-  function drawChat() {
+  function drawChat(forceBottom = false) {
     const u = selected();
     if (!u) return;
     const box = $("adminChatBox");
-    box.innerHTML = Nexum.messages(u.id)
+    const messages = Nexum.messages(u.id);
+    const lastMessage = messages[messages.length - 1];
+    const signature = `${u.id}:${messages.length}:${lastMessage?.id || ""}`;
+    const initialRender = box.dataset.chatSignature === undefined;
+    if (!forceBottom && box.dataset.chatSignature === signature) return;
+    const previousScrollTop = box.scrollTop;
+    const distanceFromBottom = box.scrollHeight - box.clientHeight - box.scrollTop;
+    const wasNearBottom = distanceFromBottom <= 48;
+    box.innerHTML = messages
       .map(
         (m) => `<div class="bubble ${m.fromRole === "user" ? "them" : "me"}"><b>${m.fromName}</b><br />${m.text}<div class="muted">${fmt(m.t)}</div></div>`
       )
       .join("");
-    box.scrollTop = box.scrollHeight;
+    box.dataset.chatSignature = signature;
+    if (forceBottom || initialRender || wasNearBottom) box.scrollTop = box.scrollHeight;
+    else box.scrollTop = previousScrollTop;
+  }
+
+  function refreshSelectedUser() {
+    const u = selected();
+    if (!u) return;
+    const blocked = Nexum.isBlocked(u);
+    $("mName").textContent = u.name;
+    $("mMail").textContent = `${u.email} · ${Nexum.ROLE_LABEL[u.role]} · ${Math.round(u.money)} ₽ · бонусы ${Math.round(u.bonus)} · ${u.minutes} мин`;
+    $("ownerRoleRow").classList.toggle("hidden", !owner || u.role === "owner");
+    $("unban").classList.toggle("hidden", !blocked);
+    $("openBlockModal").textContent = blocked ? "Изменить блокировку" : "Заблокировать";
+  }
+
+  function openActionDialog(dialog, trigger, focusTarget) {
+    actionDialogTrigger = trigger;
+    $("userModal").setAttribute("aria-hidden", "true");
+    dialog.classList.remove("hidden");
+    requestAnimationFrame(() => focusTarget.focus());
+  }
+
+  function closeActionDialog(dialog, restoreFocus = true) {
+    if (dialog.classList.contains("hidden")) return;
+    dialog.classList.add("hidden");
+    $("userModal").removeAttribute("aria-hidden");
+    if (restoreFocus && actionDialogTrigger) actionDialogTrigger.focus();
+    actionDialogTrigger = null;
+  }
+
+  function closeUserModal() {
+    closeActionDialog($("rublesModal"), false);
+    closeActionDialog($("adminBlockModal"), false);
+    $("userModal").classList.add("hidden");
+    $("userModal").removeAttribute("aria-hidden");
+    clearInterval(timer);
   }
 
   function openUser(id) {
     selectedId = id;
-    const u = selected();
-    $("mName").textContent = u.name;
-    $("mMail").textContent = `${u.email} · ${Nexum.ROLE_LABEL[u.role]} · ${Math.round(u.money)} ₽ · бонусы ${Math.round(u.bonus)} · ${u.minutes} мин`;
-    $("moneyForm").classList.toggle("hidden", !owner);
-    $("ownerRoleRow").classList.toggle("hidden", !owner || u.role === "owner");
-    $("banForever").classList.toggle("hidden", !owner);
+    refreshSelectedUser();
     $("userModal").classList.remove("hidden");
-    drawChat();
+    drawChat(true);
     clearInterval(timer);
     timer = setInterval(drawChat, 1500);
+    requestAnimationFrame(() => $("openRublesModal").focus());
   }
 
   document.querySelector("#table").addEventListener("click", (e) => {
@@ -121,64 +173,110 @@ if (!staff || !Nexum.isStaff(staff)) {
     if (b) openUser(b.dataset.open);
   });
 
-  $("closeUser").onclick = () => {
-    $("userModal").classList.add("hidden");
-    clearInterval(timer);
-  };
+  $("closeUser").onclick = closeUserModal;
 
   $("minsForm").onsubmit = (e) => {
     e.preventDefault();
     Nexum.addMinutes(selectedId, new FormData(e.target).get("mins"), staff.name);
     toast("Минуты начислены");
+    refreshSelectedUser();
     renderTable();
   };
-  $("bonusForm").onsubmit = (e) => {
+
+  $("openRublesModal").onclick = (e) => {
+    $("rublesForm").reset();
+    $("rublesType").value = "bonus";
+    $("rublesType").disabled = !owner;
+    $("rublesTypeLabel").classList.toggle("locked-field", !owner);
+    $("rublesTypeNote").textContent = owner
+      ? "Главный администратор может выбрать любой тип рублей."
+      : "Администратор может начислять только бонусные рубли.";
+    $("rublesError").textContent = "";
+    openActionDialog($("rublesModal"), e.currentTarget, owner ? $("rublesType") : $("rublesAmount"));
+  };
+
+  $("closeRublesModal").onclick = () => closeActionDialog($("rublesModal"));
+
+  $("rublesForm").onsubmit = (e) => {
     e.preventDefault();
-    Nexum.addBonus(selectedId, new FormData(e.target).get("bonus"), staff.name);
-    toast("Бонусы начислены");
+    const amount = Number($("rublesAmount").value);
+    const type = owner ? $("rublesType").value : "bonus";
+    if (!Number.isInteger(amount) || amount < 1) {
+      $("rublesError").textContent = "Введите целое количество рублей больше нуля.";
+      $("rublesAmount").focus();
+      return;
+    }
+    const result = Nexum.creditRubles(selectedId, { type, amount, admin: staff });
+    if (!result) {
+      $("rublesError").textContent = "Не удалось начислить рубли. Проверьте выбранный тип и сумму.";
+      return;
+    }
+    closeActionDialog($("rublesModal"));
+    toast(type === "money" ? "Настоящие рубли начислены" : "Бонусные рубли начислены");
+    refreshSelectedUser();
     renderTable();
   };
-  $("moneyForm").onsubmit = (e) => {
-    e.preventDefault();
-    if (!owner) return;
-    Nexum.addMoney(selectedId, new FormData(e.target).get("money"), staff.name);
-    toast("Реальные рубли начислены");
-    renderTable();
-  };
+
   $("makeAdmin").onclick = () => {
     if (!owner) return;
     Nexum.grantAdmin(selectedId, staff.name);
     toast("Роль админа выдана");
-    openUser(selectedId);
+    refreshSelectedUser();
     renderTable();
   };
   $("dropAdmin").onclick = () => {
     if (!owner) return;
     Nexum.revokeAdmin(selectedId, staff.name);
     toast("Роль админа снята");
-    openUser(selectedId);
+    refreshSelectedUser();
     renderTable();
   };
+
+  $("openBlockModal").onclick = (e) => {
+    const durations = owner
+      ? [...commonBlockDurations, ...ownerBlockDurations]
+      : commonBlockDurations;
+    $("blockDuration").innerHTML = durations
+      .map((duration) => `<option value="${duration.value}">${duration.label}</option>`)
+      .join("");
+    $("blockForm").reset();
+    $("blockDuration").value = "24";
+    $("blockError").textContent = "";
+    openActionDialog($("adminBlockModal"), e.currentTarget, $("blockDuration"));
+  };
+
+  $("closeBlockModal").onclick = () => closeActionDialog($("adminBlockModal"));
+
   $("blockForm").onsubmit = (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const duration = String(fd.get("duration"));
+    const reason = String(fd.get("reason") || "").trim();
+    if (!reason) {
+      $("blockError").textContent = "Укажите причину блокировки.";
+      $("blockReason").focus();
+      return;
+    }
     const res = Nexum.blockUser(selectedId, {
-      hours: fd.get("hours"),
-      reason: fd.get("reason"),
+      hours: duration === "forever" ? undefined : Number(duration),
+      forever: duration === "forever",
+      reason,
       admin: staff,
     });
-    toast(res ? "Пользователь заблокирован" : "Нельзя заблокировать этого пользователя");
+    if (!res) {
+      $("blockError").textContent = "Нельзя заблокировать этого пользователя на выбранный срок.";
+      return;
+    }
+    closeActionDialog($("adminBlockModal"));
+    toast(duration === "forever" ? "Пользователь заблокирован навсегда" : "Пользователь заблокирован");
+    refreshSelectedUser();
     renderTable();
   };
-  $("banForever").onclick = () => {
-    const reason = document.querySelector("#blockForm [name=reason]").value || "Блокировка главным админом";
-    const res = Nexum.blockUser(selectedId, { forever: true, reason, admin: staff });
-    toast(res ? "Бан на 10 лет" : "Нельзя заблокировать");
-    renderTable();
-  };
+
   $("unban").onclick = () => {
     Nexum.unblockUser(selectedId);
     toast("Блок снят");
+    refreshSelectedUser();
     renderTable();
   };
   $("adminChatForm").onsubmit = (e) => {
@@ -186,8 +284,25 @@ if (!staff || !Nexum.isStaff(staff)) {
     const text = new FormData(e.target).get("text");
     Nexum.sendChat({ userId: selectedId, fromRole: staff.role, fromName: staff.name, text });
     e.target.reset();
-    drawChat();
+    drawChat(true);
   };
+
+  [$("rublesModal"), $("adminBlockModal")].forEach((dialog) => {
+    dialog.addEventListener("click", (e) => {
+      if (e.target === dialog) closeActionDialog(dialog);
+    });
+  });
+
+  $("userModal").addEventListener("click", (e) => {
+    if (e.target === $("userModal")) closeUserModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!$("rublesModal").classList.contains("hidden")) closeActionDialog($("rublesModal"));
+    else if (!$("adminBlockModal").classList.contains("hidden")) closeActionDialog($("adminBlockModal"));
+    else if (!$("userModal").classList.contains("hidden")) closeUserModal();
+  });
 
   setInterval(() => {
     if (!$("adminDrawer").classList.contains("hidden") && !$("adminUsersView").classList.contains("hidden")) {
