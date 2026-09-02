@@ -50,12 +50,20 @@
         </article>
         <div class="span-right">
           <div class="side-actions">
-            <button class="pill pill-red" id="focusTariffs">ТАРИФЫ</button>
-            <button class="pill pill-ghost" id="openChat">ЧАТ С АДМИНОМ</button>
+            <button class="pill pill-red" id="focusTariffs" aria-pressed="true">ТАРИФЫ</button>
+            <button class="pill pill-ghost" id="openChat" aria-pressed="false">ЧАТ С АДМИНОМ</button>
           </div>
           <article class="card tariffs" id="tariffCard">
             <h2>ТАРИФЫ, ДОСТУПНЫЕ НА ДАННОМ ПК</h2>
             <div class="tariff-list" id="tariffList"></div>
+          </article>
+          <article class="card right-chat hidden" id="rightChatPanel">
+            <h2>ЧАТ С АДМИНИСТРАТОРОМ</h2>
+            <div class="chat-box" id="rightChatBox"></div>
+            <form class="form right-chat-form" id="rightChatForm" autocomplete="off">
+              <input name="text" required placeholder="Напиши админу…" maxlength="500" autocomplete="off" />
+              <button class="btn btn-red" type="submit">Отправить</button>
+            </form>
           </article>
         </div>
 
@@ -68,11 +76,10 @@
           <h2>ОСНОВНОЙ СЧЁТ</h2>
           <div class="money">
             <b id="money">0 ₽</b>
-            <span id="bonus">0 ₽ бонусный счёт</span>
+            <span id="bonus">0 ₽</span>
           </div>
           <div class="pay-btns">
             <button class="pay pay-red" id="topMoney">ПОПОЛНИТЬ</button>
-            <button class="pay pay-blue" id="topBonusInfo">БОНУСЫ 5%</button>
           </div>
         </article>
 
@@ -109,7 +116,6 @@
           <span id="logoutLabel">Выйти из аккаунта</span>
         </button>
       </div>
-      <div class="foot">Powered by NEXUM SOFTWARE · demo v.1.0.0</div>
     </div>
   </div>
 
@@ -132,10 +138,6 @@
         <div>
           <span>Пакет</span>
           <b id="confirmPackageName"></b>
-        </div>
-        <div id="confirmPackageDurationRow">
-          <span>Продолжительность</span>
-          <b id="confirmPackageDuration"></b>
         </div>
         <div class="package-confirm-total">
           <span>Сумма к оплате</span>
@@ -176,18 +178,23 @@
     <div class="modal">
       <h3>Пополнить основной счёт</h3>
       <p class="muted">Демо-оплата. 5% суммы сразу уйдёт на бонусный счёт.</p>
-      <form class="form" id="payForm">
+      <form class="form" id="payForm" autocomplete="off" novalidate>
         <label>Сумма, ₽
-          <select name="amount">
-            <option value="300">300</option>
-            <option value="500" selected>500</option>
-            <option value="1000">1000</option>
-            <option value="2000">2000</option>
-          </select>
+          <input id="topUpAmount" name="amount" type="number" min="100" step="1" inputmode="numeric" placeholder="Введите сумму" autocomplete="off" required />
         </label>
+        <p class="muted topup-minimum">Минимальный платёж — 100 рублей</p>
+        <div class="topup-presets" aria-label="Быстрый выбор суммы пополнения">
+          <button class="topup-preset" type="button" data-topup-amount="100">100 ₽</button>
+          <button class="topup-preset" type="button" data-topup-amount="300">300 ₽</button>
+          <button class="topup-preset" type="button" data-topup-amount="500">500 ₽</button>
+          <button class="topup-preset" type="button" data-topup-amount="1000">1000 ₽</button>
+          <button class="topup-preset" type="button" data-topup-amount="2000">2000 ₽</button>
+        </div>
+        <p class="err topup-error" id="topUpError" aria-live="polite"></p>
         <label>Номер карты (любой)
-          <input name="card" placeholder="4242 4242 4242 4242" required />
+          <input id="topUpCard" name="card" placeholder="4242 4242 4242 4242" autocomplete="off" required />
         </label>
+        <p class="err topup-error" id="topUpCardError" aria-live="polite"></p>
         <p class="muted">Платёж не настоящий, реквизиты никуда не отправляются.</p>
         <div class="btn-row">
           <button class="btn btn-red" type="submit">Оплатить демо</button>
@@ -201,8 +208,8 @@
     <div class="modal wide">
       <h3>Чат с администратором</h3>
       <div class="chat-box" id="chatBox"></div>
-      <form class="form" id="chatForm">
-        <input name="text" required placeholder="Напиши админу…" maxlength="500" />
+      <form class="form" id="chatForm" autocomplete="off">
+        <input name="text" required placeholder="Напиши админу…" maxlength="500" autocomplete="off" />
         <div class="btn-row">
           <button class="btn btn-red" type="submit">Отправить</button>
           <button class="btn btn-ghost" type="button" id="closeChat">Закрыть</button>
@@ -267,21 +274,21 @@
       <h3 id="mName"></h3>
       <p class="muted" id="mMail"></p>
       <div class="btn-row" style="margin:12px 0">
-        <form class="form" id="minsForm" style="flex:1">
+        <form class="form" id="minsForm" style="flex:1" autocomplete="off">
           <label>Добавить минуты
-            <input name="mins" type="number" min="1" value="60" required />
+            <input name="mins" type="number" min="1" value="60" autocomplete="off" required />
           </label>
           <button class="btn btn-red" type="submit">Начислить минуты</button>
         </form>
-        <form class="form" id="bonusForm" style="flex:1">
+        <form class="form" id="bonusForm" style="flex:1" autocomplete="off">
           <label>Бонусные рубли
-            <input name="bonus" type="number" min="1" value="100" required />
+            <input name="bonus" type="number" min="1" value="100" autocomplete="off" required />
           </label>
           <button class="btn btn-red" type="submit">Накинуть бонусы</button>
         </form>
-        <form class="form hidden" id="moneyForm" style="flex:1">
+        <form class="form hidden" id="moneyForm" style="flex:1" autocomplete="off">
           <label>Реальные рубли (не бонусы)
-            <input name="money" type="number" min="1" value="500" required />
+            <input name="money" type="number" min="1" value="500" autocomplete="off" required />
           </label>
           <button class="btn btn-red" type="submit">Начислить на основной счёт</button>
         </form>
@@ -290,12 +297,12 @@
         <button class="btn btn-red" id="makeAdmin">Выдать админа</button>
         <button class="btn btn-ghost" id="dropAdmin">Снять админа</button>
       </div>
-      <form class="form" id="blockForm">
+      <form class="form" id="blockForm" autocomplete="off">
         <label>Срок блокировки, часов
-          <input name="hours" type="number" min="1" value="24" required />
+          <input name="hours" type="number" min="1" value="24" autocomplete="off" required />
         </label>
         <label>Причина
-          <textarea name="reason" required placeholder="Нарушение правил клуба"></textarea>
+          <textarea name="reason" required placeholder="Нарушение правил клуба" autocomplete="off"></textarea>
         </label>
         <div class="btn-row">
           <button class="btn btn-red" type="submit">Заблокировать</button>
@@ -305,8 +312,8 @@
       </form>
       <h3 style="margin:16px 0 8px">Чат</h3>
       <div class="chat-box" id="adminChatBox"></div>
-      <form class="form" id="adminChatForm">
-        <input name="text" required placeholder="Ответ пользователю" />
+      <form class="form" id="adminChatForm" autocomplete="off">
+        <input name="text" required placeholder="Ответ пользователю" autocomplete="off" />
         <div class="btn-row">
           <button class="btn btn-red" type="submit">Отправить</button>
           <button class="btn btn-ghost" type="button" id="closeUser">Закрыть</button>

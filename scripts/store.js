@@ -4,10 +4,11 @@ const TARIFFS = [
   { id: "base", name: "Базовый тариф", price: 170, mins: 60, type: "hour" },
   { id: "p3", name: "Пакет 3 часа", price: 470, mins: 180, type: "pack" },
   { id: "p5", name: "Пакет 5 часов", price: 700, mins: 300, type: "pack" },
-  { id: "night", name: "Пакет Ночь (22:00-8:00)", price: 810, mins: 600, type: "pack", showDuration: false },
-  { id: "morning", name: "Пакет Утро (08:00-12:00)", price: 340, mins: 240, type: "pack", showDuration: false },
-  { id: "day", name: "Пакет День (12:00-17:00)", price: 470, mins: 300, type: "pack", showDuration: false },
+  { id: "night", name: "Пакет Ночь (22:00-8:00)", price: 810, mins: 600, type: "pack" },
+  { id: "morning", name: "Пакет Утро (08:00-12:00)", price: 340, mins: 240, type: "pack" },
+  { id: "day", name: "Пакет День (12:00-17:00)", price: 470, mins: 300, type: "pack" },
 ];
+const MIN_TOP_UP = 100;
 
 const ROLE_LABEL = {
   owner: "Главный админ",
@@ -166,8 +167,8 @@ function isBlocked(u) {
 }
 
 function topUpMoney(userId, amount) {
-  amount = Math.round(Number(amount));
-  if (amount <= 0) return;
+  amount = Number(amount);
+  if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount < MIN_TOP_UP) return null;
   const bonus = Math.round(amount * 0.05);
   const u = patchUser(userId, (x) => {
     x.money += amount;
@@ -442,6 +443,7 @@ function analytics() {
 
 window.Nexum = {
   TARIFFS,
+  MIN_TOP_UP,
   ROLE_LABEL,
   db,
   saveDb,
