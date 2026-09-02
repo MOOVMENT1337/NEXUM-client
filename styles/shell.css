@@ -173,14 +173,57 @@ img { max-width: 100%; display: block; }
 .pay-blue { background: linear-gradient(90deg, #3b82f6, #1d4ed8); }
 
 .tariffs { padding: 12px; }
-.tariff-list { display: grid; gap: 2px; margin-top: 8px; max-height: 280px; overflow: auto; }
+.tariff-list { display: grid; gap: 2px; margin-top: 8px; }
 .tariff {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: left; width: 100%;
   border-radius: 8px;
 }
-.tariff:hover, .tariff.on { background: color-mix(in srgb, var(--red) 12%, transparent); }
+.tariff-preview { cursor: default; }
+.tariff-preview span { display: grid; gap: 2px; }
+.tariff-preview strong { font-size: 13px; }
+.tariff-preview small { color: var(--muted); font-size: 11px; }
 .tariff b { font-weight: 600; }
+
+.package-picker {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+  margin-top: 16px;
+}
+.package-option {
+  min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--panel-2); text-align: left; transition: border-color 160ms, background 160ms, transform 160ms;
+}
+.package-option:hover {
+  border-color: color-mix(in srgb, var(--red) 70%, var(--line));
+  background: color-mix(in srgb, var(--red) 10%, var(--panel-2));
+  transform: translateY(-1px);
+}
+.package-option.credited-time { border-color: color-mix(in srgb, var(--green) 48%, var(--line)); }
+.package-option.credited-time:hover {
+  border-color: color-mix(in srgb, var(--green) 72%, var(--line));
+  background: color-mix(in srgb, var(--green) 9%, var(--panel-2));
+}
+.package-option.credited-time .package-option-top b { color: var(--green); }
+.package-option-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.package-option-top strong { font-size: 14px; line-height: 1.35; }
+.package-option-top b { color: #ff625b; white-space: nowrap; }
+.package-option small { display: block; color: var(--muted); margin-top: 8px; }
+.modal-actions { justify-content: flex-end; margin-top: 16px; }
+.package-confirm {
+  display: grid; gap: 12px; margin-top: 16px; padding: 16px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px;
+}
+.package-confirm > div { display: flex; justify-content: space-between; gap: 20px; }
+.package-confirm span { color: var(--muted); font-size: 13px; }
+.package-confirm b { text-align: right; }
+.package-confirm-total { padding-top: 12px; border-top: 1px solid var(--line); }
+.package-confirm-total b { color: #ff625b; font-size: 22px; }
+.danger-note {
+  margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--red) 45%, var(--line));
+  background: color-mix(in srgb, var(--red) 10%, var(--panel-2));
+  color: var(--text); font-size: 13px; line-height: 1.55;
+}
 
 .banners { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .banner {
@@ -206,6 +249,9 @@ img { max-width: 100%; display: block; }
 }
 .act svg { width: 28px; height: 28px; }
 .act:hover { border-color: #555; color: var(--text); }
+.session-action.is-active { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.session-action.is-active svg { color: var(--green); }
+.act.ends-session { border-color: color-mix(in srgb, var(--red) 45%, var(--line)); color: var(--text); }
 
 .foot {
   display: flex; justify-content: flex-end; color: var(--muted); font-size: 12px; padding: 0 6px;
@@ -219,7 +265,9 @@ img { max-width: 100%; display: block; }
   width: min(460px, 100%); background: var(--panel); border: 1px solid var(--line);
   border-radius: 20px; padding: 20px; box-shadow: var(--shadow);
 }
+.action-confirm-modal { z-index: 60; }
 .modal.wide { width: min(720px, 100%); }
+.modal.session-packages-modal { width: min(660px, 100%); }
 .modal h3 { margin-bottom: 8px; }
 .form { display: grid; gap: 10px; margin-top: 10px; }
 label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
@@ -287,4 +335,10 @@ textarea { min-height: 88px; resize: vertical; }
   .banners { grid-template-columns: 1fr; }
   .admin-drawer { left: 0; width: 100%; }
   .stat-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 560px) {
+  .package-picker { grid-template-columns: 1fr; }
+  .package-confirm > div { align-items: flex-start; }
+  .modal-actions .btn { flex: 1 1 100%; }
 }
