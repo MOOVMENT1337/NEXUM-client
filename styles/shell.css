@@ -198,6 +198,12 @@ img { max-width: 100%; display: block; }
   background: color-mix(in srgb, var(--red) 10%, var(--panel-2));
   transform: translateY(-1px);
 }
+.package-option.credited-time { border-color: color-mix(in srgb, var(--green) 48%, var(--line)); }
+.package-option.credited-time:hover {
+  border-color: color-mix(in srgb, var(--green) 72%, var(--line));
+  background: color-mix(in srgb, var(--green) 9%, var(--panel-2));
+}
+.package-option.credited-time .package-option-top b { color: var(--green); }
 .package-option-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .package-option-top strong { font-size: 14px; line-height: 1.35; }
 .package-option-top b { color: #ff625b; white-space: nowrap; }

@@ -6,6 +6,7 @@ if (u0 && Nexum.isStaff(u0)) {
 
 let pendingTariffId = null;
 let chatTimer = null;
+const CREDITED_TIME_ID = "credited";
 
 function $(id) {
   return document.getElementById(id);
@@ -33,6 +34,22 @@ function fmtDuration(mins) {
 
 function shouldShowDuration(tariff) {
   return tariff.showDuration !== false;
+}
+
+function sessionPackageOptions() {
+  const u = user();
+  const credited = Math.floor(Number(u?.minutes) || 0);
+  const options = [...Nexum.TARIFFS];
+  if (credited > 0) {
+    options.unshift({
+      id: CREDITED_TIME_ID,
+      name: "Начисленное время",
+      price: 0,
+      mins: credited,
+      isCredited: true,
+    });
+  }
+  return options;
 }
 
 function user() {
@@ -118,10 +135,10 @@ function openChat() {
 }
 
 function renderSessionPackages() {
-  $("sessionPackageList").innerHTML = Nexum.TARIFFS.map(
-    (t) => `<button class="package-option" type="button" data-package-id="${t.id}">
-      <span class="package-option-top"><strong>${t.name}</strong><b>${t.price} ₽</b></span>
-      ${shouldShowDuration(t) ? `<small>${fmtDuration(t.mins)} игрового времени</small>` : ""}
+  $("sessionPackageList").innerHTML = sessionPackageOptions().map(
+    (t) => `<button class="package-option ${t.isCredited ? "credited-time" : ""}" type="button" data-package-id="${t.id}">
+      <span class="package-option-top"><strong>${t.name}</strong><b>${t.isCredited ? "Без оплаты" : `${t.price} ₽`}</b></span>
+      ${shouldShowDuration(t) ? `<small>${fmtDuration(t.mins)} ${t.isCredited ? "начислено администратором" : "игрового времени"}</small>` : ""}
     </button>`
   ).join("");
 }
@@ -147,19 +164,28 @@ function openPackagePicker() {
 }
 
 function openPackageConfirmation(tariffId) {
-  const tariff = Nexum.TARIFFS.find((t) => t.id === tariffId);
+  const tariff = sessionPackageOptions().find((t) => t.id === tariffId);
   if (!tariff) return;
   pendingTariffId = tariff.id;
   const extending = Boolean(user().session);
   $("packageConfirmTitle").textContent = extending ? "Подтверждение продления" : "Подтверждение пакета";
-  $("packageConfirmHint").textContent = extending
-    ? "После оплаты время пакета сразу добавится к активной сессии."
-    : "После оплаты сессия запустится автоматически.";
+  if (tariff.isCredited) {
+    $("packageConfirmHint").textContent = extending
+      ? "Начисленные минуты будут добавлены к активной сессии без списания средств."
+      : "Сессия запустится на начисленные минуты без списания средств.";
+  } else {
+    const credited = Math.floor(Number(user().minutes) || 0);
+    $("packageConfirmHint").textContent = extending
+      ? "После оплаты время пакета сразу добавится к активной сессии."
+      : `После оплаты сессия запустится автоматически.${credited > 0 ? ` Также будут использованы начисленные минуты: ${credited}.` : ""}`;
+  }
   $("confirmPackageName").textContent = tariff.name;
   $("confirmPackageDuration").textContent = fmtDuration(tariff.mins);
   $("confirmPackageDurationRow").classList.toggle("hidden", !shouldShowDuration(tariff));
   $("confirmPackagePrice").textContent = `${tariff.price} ₽`;
-  $("confirmPackagePurchase").textContent = extending ? "Оплатить и продлить" : "Оплатить и начать";
+  $("confirmPackagePurchase").textContent = tariff.isCredited
+    ? (extending ? "Использовать и продлить" : "Использовать и начать")
+    : (extending ? "Оплатить и продлить" : "Оплатить и начать");
   $("packageModal").classList.add("hidden");
   $("packageConfirmModal").classList.remove("hidden");
 }
@@ -177,14 +203,17 @@ $("backToPackages").onclick = () => {
 };
 $("confirmPackagePurchase").onclick = () => {
   if (!pendingTariffId) return;
-  const result = Nexum.purchaseSessionPackage(user(), pendingTariffId);
+  const result = pendingTariffId === CREDITED_TIME_ID
+    ? Nexum.useCreditedMinutes(user())
+    : Nexum.purchaseSessionPackage(user(), pendingTariffId);
   if (!result.ok) {
     toast(result.error);
     render();
     return;
   }
+  const addedMins = result.tariff?.mins || result.minutes;
   closePackageFlow();
-  toast(result.mode === "extended" ? `Сессия продлена на ${fmtDuration(result.tariff.mins)}` : "Сессия запущена");
+  toast(result.mode === "extended" ? `Сессия продлена на ${fmtDuration(addedMins)}` : "Сессия запущена");
   render();
 };
 

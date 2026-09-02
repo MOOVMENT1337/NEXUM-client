@@ -192,8 +192,18 @@ function addBonus(userId, amount, adminName) {
 function addMinutes(userId, mins, adminName) {
   mins = Math.round(Number(mins));
   return patchUser(userId, (u) => {
-    u.minutes += mins;
     u.history = u.history || [];
+    tickSession(u);
+    if (u.session) {
+      const currentTime = now();
+      const elapsed = currentTime - u.session.startedAt;
+      const remainMs = Math.max(0, u.session.leftMs - elapsed);
+      u.session.startedAt = currentTime;
+      u.session.leftMs = remainMs + mins * 60 * 1000;
+      u.history.unshift({ t: currentTime, text: `${adminName} продлил сессию на ${mins} мин` });
+      return;
+    }
+    u.minutes += mins;
     u.history.unshift({ t: now(), text: `${adminName} добавил ${mins} мин` });
   });
 }
@@ -335,6 +345,37 @@ function purchaseSessionPackage(u, tariffId) {
   const result = startSession(u, tariff.id);
   return result.ok ? { ...result, mode: "started", tariff } : result;
 }
+
+function useCreditedMinutes(u) {
+  tickSession(u);
+  const creditedMins = Math.floor(Number(u?.minutes) || 0);
+  if (creditedMins <= 0) return { ok: false, error: "Начисленных минут больше нет" };
+
+  const currentTime = now();
+  if (u.session) {
+    const elapsed = currentTime - u.session.startedAt;
+    const remainMs = Math.max(0, u.session.leftMs - elapsed);
+    u.session.startedAt = currentTime;
+    u.session.leftMs = remainMs + creditedMins * 60 * 1000;
+    u.minutes = 0;
+    u.history = u.history || [];
+    u.history.unshift({ t: currentTime, text: `Сессия продлена на ${creditedMins} начисленных мин` });
+    saveDb(db);
+    return { ok: true, mode: "extended", minutes: creditedMins };
+  }
+
+  u.session = {
+    startedAt: currentTime,
+    tariffId: "credited",
+    tariffName: "Начисленное время",
+    leftMs: creditedMins * 60 * 1000,
+  };
+  u.minutes = 0;
+  u.history = u.history || [];
+  u.history.unshift({ t: currentTime, text: `Сессия запущена на ${creditedMins} начисленных мин` });
+  saveDb(db);
+  return { ok: true, mode: "started", minutes: creditedMins };
+}
 function tickSession(u) {
   if (!u || !u.session) return u;
   const elapsed = now() - u.session.startedAt;
@@ -426,6 +467,7 @@ window.Nexum = {
   sendChat,
   startSession,
   purchaseSessionPackage,
+  useCreditedMinutes,
   tickSession,
   endSession,
   visibleUsers,
