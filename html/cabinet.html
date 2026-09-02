@@ -100,16 +100,75 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
           Сообщить о проблеме
         </button>
-        <button class="act" id="startSession">
-          <svg viewBox="0 0 24 24" fill="#22c55e"><path d="M8 6v12l12-6z"/></svg>
+        <button class="act session-action" id="startSession">
+          <svg id="sessionActionIcon" viewBox="0 0 24 24" fill="#22c55e" aria-hidden="true"><path d="M8 6v12l12-6z"/></svg>
           <span id="startLabel">Начать сессию</span>
         </button>
         <button class="act" id="logout">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2M3 12h11M11 8l4 4-4 4"/></svg>
-          Выйти из аккаунта
+          <svg id="logoutIcon" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" aria-hidden="true"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2M3 12h11M11 8l4 4-4 4"/></svg>
+          <span id="logoutLabel">Выйти из аккаунта</span>
         </button>
       </div>
       <div class="foot">Powered by NEXUM SOFTWARE · demo v.1.0.0</div>
+    </div>
+  </div>
+
+  <div class="modal-back hidden" id="packageModal" role="dialog" aria-modal="true" aria-labelledby="packageModalTitle">
+    <div class="modal session-packages-modal">
+      <h3 id="packageModalTitle">Выберите пакет</h3>
+      <p class="muted" id="packageModalHint">Выберите подходящее время для новой сессии.</p>
+      <div class="package-picker" id="sessionPackageList"></div>
+      <div class="btn-row modal-actions">
+        <button class="btn btn-ghost" type="button" id="closePackages">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-back hidden" id="packageConfirmModal" role="dialog" aria-modal="true" aria-labelledby="packageConfirmTitle">
+    <div class="modal">
+      <h3 id="packageConfirmTitle">Подтверждение пакета</h3>
+      <p class="muted" id="packageConfirmHint">Проверьте выбранный пакет перед оформлением.</p>
+      <div class="package-confirm">
+        <div>
+          <span>Пакет</span>
+          <b id="confirmPackageName"></b>
+        </div>
+        <div id="confirmPackageDurationRow">
+          <span>Продолжительность</span>
+          <b id="confirmPackageDuration"></b>
+        </div>
+        <div class="package-confirm-total">
+          <span>Сумма к оплате</span>
+          <b id="confirmPackagePrice"></b>
+        </div>
+      </div>
+      <div class="btn-row modal-actions">
+        <button class="btn btn-red" type="button" id="confirmPackagePurchase">Оплатить и начать</button>
+        <button class="btn btn-ghost" type="button" id="backToPackages">Назад</button>
+        <button class="btn btn-ghost" type="button" id="cancelPackagePurchase">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-back action-confirm-modal hidden" id="endSessionModal" role="dialog" aria-modal="true" aria-labelledby="endSessionTitle">
+    <div class="modal">
+      <h3 id="endSessionTitle">Завершить сессию?</h3>
+      <p class="danger-note" id="endSessionWarning">Вы точно хотите завершить сессию? Оставшиеся минуты сгорят.</p>
+      <div class="btn-row modal-actions">
+        <button class="btn btn-red" type="button" id="confirmEndSession">Завершить сессию</button>
+        <button class="btn btn-ghost" type="button" id="cancelEndSession">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-back action-confirm-modal hidden" id="logoutModal" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
+    <div class="modal">
+      <h3 id="logoutModalTitle">Выйти из аккаунта?</h3>
+      <p class="muted">Вы точно хотите выйти из аккаунта?</p>
+      <div class="btn-row modal-actions">
+        <button class="btn btn-red" type="button" id="confirmLogout">Выйти</button>
+        <button class="btn btn-ghost" type="button" id="cancelLogout">Отмена</button>
+      </div>
     </div>
   </div>
 

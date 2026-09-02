@@ -4,9 +4,9 @@ const TARIFFS = [
   { id: "base", name: "Базовый тариф", price: 170, mins: 60, type: "hour" },
   { id: "p3", name: "Пакет 3 часа", price: 470, mins: 180, type: "pack" },
   { id: "p5", name: "Пакет 5 часов", price: 700, mins: 300, type: "pack" },
-  { id: "night", name: "Пакет Ночь (22:00-8:00)", price: 810, mins: 600, type: "pack" },
-  { id: "morning", name: "Пакет Утро (08:00-12:00)", price: 340, mins: 240, type: "pack" },
-  { id: "day", name: "Пакет День (12:00-17:00)", price: 470, mins: 300, type: "pack" },
+  { id: "night", name: "Пакет Ночь (22:00-8:00)", price: 810, mins: 600, type: "pack", showDuration: false },
+  { id: "morning", name: "Пакет Утро (08:00-12:00)", price: 340, mins: 240, type: "pack", showDuration: false },
+  { id: "day", name: "Пакет День (12:00-17:00)", price: 470, mins: 300, type: "pack", showDuration: false },
 ];
 
 const ROLE_LABEL = {
@@ -266,6 +266,8 @@ function sendChat({ userId, fromRole, fromName, text }) {
 }
 
 function spendForPack(u, tariff) {
+  if (u.money + u.bonus < tariff.price) return false;
+
   let left = tariff.price;
   const fromMoney = Math.min(u.money, left);
   u.money -= fromMoney;
@@ -273,7 +275,6 @@ function spendForPack(u, tariff) {
   const fromBonus = Math.min(u.bonus, left);
   u.bonus -= fromBonus;
   left -= fromBonus;
-  if (left > 0) return false;
   u.minutes += tariff.mins;
   u.history = u.history || [];
   u.history.unshift({ t: now(), text: `Оплачен тариф «${tariff.name}» за ${tariff.price} ₽` });
@@ -306,6 +307,34 @@ function startSession(u, tariffId) {
   return { ok: true };
 }
 
+function purchaseSessionPackage(u, tariffId) {
+  const tariff = TARIFFS.find((t) => t.id === tariffId);
+  if (!tariff) return { ok: false, error: "Пакет не найден" };
+
+  tickSession(u);
+  const isExtension = Boolean(u.session);
+  if (!spendForPack(u, tariff)) {
+    return { ok: false, error: "Недостаточно средств на счетах" };
+  }
+
+  if (isExtension) {
+    const currentTime = now();
+    const elapsed = currentTime - u.session.startedAt;
+    const remainMs = Math.max(0, u.session.leftMs - elapsed);
+    u.session.startedAt = currentTime;
+    u.session.leftMs = remainMs + u.minutes * 60 * 1000;
+    u.session.tariffId = tariff.id;
+    u.session.tariffName = tariff.name;
+    u.minutes = 0;
+    u.history = u.history || [];
+    u.history.unshift({ t: currentTime, text: `Сессия продлена пакетом «${tariff.name}» на ${tariff.mins} мин` });
+    saveDb(db);
+    return { ok: true, mode: "extended", tariff };
+  }
+
+  const result = startSession(u, tariff.id);
+  return result.ok ? { ...result, mode: "started", tariff } : result;
+}
 function tickSession(u) {
   if (!u || !u.session) return u;
   const elapsed = now() - u.session.startedAt;
@@ -320,17 +349,20 @@ function tickSession(u) {
   return u;
 }
 
-function stopSession(u) {
-  if (!u.session) return;
+function endSession(u) {
+  tickSession(u);
+  if (!u || !u.session) return { ok: false, error: "Активная сессия уже завершена" };
+
   const elapsed = now() - u.session.startedAt;
   const remainMs = Math.max(0, u.session.leftMs - elapsed);
-  u.minutes = Math.floor(remainMs / 60000);
+  const remainingMins = Math.ceil(remainMs / 60000);
   u.session = null;
+  u.minutes = 0;
   u.history = u.history || [];
-  u.history.unshift({ t: now(), text: "Сессия остановлена" });
+  u.history.unshift({ t: now(), text: `Сессия завершена пользователем. Сгорело ${remainingMins} мин` });
   saveDb(db);
+  return { ok: true, remainingMins };
 }
-
 function visibleUsers(viewer) {
   if (!viewer) return [];
   if (viewer.role === "owner") return db.users.filter((u) => u.id !== viewer.id);
@@ -393,8 +425,9 @@ window.Nexum = {
   messages,
   sendChat,
   startSession,
+  purchaseSessionPackage,
   tickSession,
-  stopSession,
+  endSession,
   visibleUsers,
   analytics,
   now,
