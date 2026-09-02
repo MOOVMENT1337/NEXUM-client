@@ -6,6 +6,7 @@ if (u0 && Nexum.isStaff(u0)) {
 
 let pendingTariffId = null;
 let chatTimer = null;
+let blockedChatOpen = false;
 const CREDITED_TIME_ID = "credited";
 
 function $(id) {
@@ -27,15 +28,6 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleString("ru-RU");
 }
 
-function fmtDuration(mins) {
-  const hours = mins / 60;
-  return Number.isInteger(hours) ? `${hours} ч` : `${mins} мин`;
-}
-
-function shouldShowDuration(tariff) {
-  return tariff.showDuration !== false;
-}
-
 function sessionPackageOptions() {
   const u = user();
   const credited = Math.floor(Number(u?.minutes) || 0);
@@ -43,7 +35,7 @@ function sessionPackageOptions() {
   if (credited > 0) {
     options.unshift({
       id: CREDITED_TIME_ID,
-      name: "Начисленное время",
+      name: `Начисленное время (${credited} мин.)`,
       price: 0,
       mins: credited,
       isCredited: true,
@@ -64,7 +56,7 @@ function render() {
   $("userMail").textContent = u.email;
   $("userStatus").textContent = u.status || "СТАНДАРТ";
   $("money").textContent = fmtMoney(u.money);
-  $("bonus").textContent = `${Math.round(u.bonus)} ₽ бонусный счёт`;
+  $("bonus").textContent = `${Math.round(u.bonus)} ₽`;
 
   if (u.session) {
     const remainMs = Math.max(0, u.session.leftMs - (Date.now() - u.session.startedAt));
@@ -91,11 +83,11 @@ function render() {
 
   $("tariffList").innerHTML = Nexum.TARIFFS.map(
     (t) => `<div class="tariff tariff-preview">
-      <span><strong>${t.name}</strong>${shouldShowDuration(t) ? `<small>${fmtDuration(t.mins)}</small>` : ""}</span><b>${t.price} ₽</b>
+      <strong>${t.name}</strong><b>${t.price} ₽</b>
     </div>`
   ).join("");
 
-  if (Nexum.isBlocked(u)) showBlock(u);
+  if (Nexum.isBlocked(u) && !blockedChatOpen) showBlock(u);
   else $("blockModal").classList.add("hidden");
 }
 
@@ -116,29 +108,64 @@ function info(title, body) {
   $("infoModal").classList.remove("hidden");
 }
 
-function drawChat() {
+function drawChat(box, forceBottom = false) {
   const u = user();
-  const box = $("chatBox");
-  box.innerHTML = Nexum.messages(u.id)
+  const messages = Nexum.messages(u.id);
+  const lastMessage = messages[messages.length - 1];
+  const signature = `${messages.length}:${lastMessage?.id || ""}`;
+  const initialRender = box.dataset.chatSignature === undefined;
+  if (!forceBottom && box.dataset.chatSignature === signature) return;
+  const previousScrollTop = box.scrollTop;
+  const distanceFromBottom = box.scrollHeight - box.clientHeight - box.scrollTop;
+  const wasNearBottom = distanceFromBottom <= 48;
+  box.innerHTML = messages
     .map(
       (m) => `<div class="bubble ${m.fromRole === "user" ? "me" : "them"}"><b>${m.fromName}</b><br />${m.text}<div class="muted">${fmtTime(m.t)}</div></div>`
     )
     .join("");
-  box.scrollTop = box.scrollHeight;
+  box.dataset.chatSignature = signature;
+  if (forceBottom || initialRender || wasNearBottom) box.scrollTop = box.scrollHeight;
+  else box.scrollTop = previousScrollTop;
 }
 
-function openChat() {
-  $("chatModal").classList.remove("hidden");
-  drawChat();
+function drawRightChat(forceBottom = false) {
+  drawChat($("rightChatBox"), forceBottom);
+}
+
+function drawBlockedChat(forceBottom = false) {
+  drawChat($("chatBox"), forceBottom);
+}
+
+function startChatUpdates(draw) {
   clearInterval(chatTimer);
-  chatTimer = setInterval(drawChat, 1500);
+  draw();
+  chatTimer = setInterval(draw, 1500);
+}
+
+function openBlockedChat() {
+  blockedChatOpen = true;
+  $("chatModal").classList.remove("hidden");
+  startChatUpdates(drawBlockedChat);
+}
+
+function showRightPanel(panel) {
+  const showChat = panel === "chat";
+  $("tariffCard").classList.toggle("hidden", showChat);
+  $("rightChatPanel").classList.toggle("hidden", !showChat);
+  $("focusTariffs").classList.toggle("pill-red", !showChat);
+  $("focusTariffs").classList.toggle("pill-ghost", showChat);
+  $("openChat").classList.toggle("pill-red", showChat);
+  $("openChat").classList.toggle("pill-ghost", !showChat);
+  $("focusTariffs").setAttribute("aria-pressed", String(!showChat));
+  $("openChat").setAttribute("aria-pressed", String(showChat));
+  clearInterval(chatTimer);
+  if (showChat) startChatUpdates(drawRightChat);
 }
 
 function renderSessionPackages() {
   $("sessionPackageList").innerHTML = sessionPackageOptions().map(
     (t) => `<button class="package-option ${t.isCredited ? "credited-time" : ""}" type="button" data-package-id="${t.id}">
       <span class="package-option-top"><strong>${t.name}</strong><b>${t.isCredited ? "Без оплаты" : `${t.price} ₽`}</b></span>
-      ${shouldShowDuration(t) ? `<small>${fmtDuration(t.mins)} ${t.isCredited ? "начислено администратором" : "игрового времени"}</small>` : ""}
     </button>`
   ).join("");
 }
@@ -180,8 +207,6 @@ function openPackageConfirmation(tariffId) {
       : `После оплаты сессия запустится автоматически.${credited > 0 ? ` Также будут использованы начисленные минуты: ${credited}.` : ""}`;
   }
   $("confirmPackageName").textContent = tariff.name;
-  $("confirmPackageDuration").textContent = fmtDuration(tariff.mins);
-  $("confirmPackageDurationRow").classList.toggle("hidden", !shouldShowDuration(tariff));
   $("confirmPackagePrice").textContent = `${tariff.price} ₽`;
   $("confirmPackagePurchase").textContent = tariff.isCredited
     ? (extending ? "Использовать и продлить" : "Использовать и начать")
@@ -211,9 +236,8 @@ $("confirmPackagePurchase").onclick = () => {
     render();
     return;
   }
-  const addedMins = result.tariff?.mins || result.minutes;
   closePackageFlow();
-  toast(result.mode === "extended" ? `Сессия продлена на ${fmtDuration(addedMins)}` : "Сессия запущена");
+  toast(result.mode === "extended" ? "Сессия продлена" : "Сессия запущена");
   render();
 };
 
@@ -229,11 +253,13 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-$("focusTariffs").onclick = () => $("tariffCard").scrollIntoView({ behavior: "smooth", block: "center" });
-$("openChat").onclick = openChat;
+$("focusTariffs").onclick = () => showRightPanel("tariffs");
+$("openChat").onclick = () => showRightPanel("chat");
 $("closeChat").onclick = () => {
+  blockedChatOpen = false;
   $("chatModal").classList.add("hidden");
   clearInterval(chatTimer);
+  render();
 };
 $("chatForm").onsubmit = (e) => {
   e.preventDefault();
@@ -241,24 +267,87 @@ $("chatForm").onsubmit = (e) => {
   const text = new FormData(e.target).get("text");
   Nexum.sendChat({ userId: u.id, fromRole: "user", fromName: u.name, text });
   e.target.reset();
-  drawChat();
+  drawBlockedChat(true);
+};
+$("rightChatForm").onsubmit = (e) => {
+  e.preventDefault();
+  const u = user();
+  const text = new FormData(e.target).get("text");
+  Nexum.sendChat({ userId: u.id, fromRole: "user", fromName: u.name, text });
+  e.target.reset();
+  drawRightChat(true);
 };
 
 $("topMoney").onclick = () => {
   if (Nexum.isBlocked(user())) return;
+  $("payForm").reset();
+  $("topUpError").textContent = "";
+  $("topUpCardError").textContent = "";
+  document.querySelectorAll("[data-topup-amount]").forEach((button) => button.classList.remove("is-selected"));
   $("payModal").classList.remove("hidden");
+  $("topUpAmount").focus();
 };
 $("closePay").onclick = () => $("payModal").classList.add("hidden");
+
+function syncTopUpPresets() {
+  const amount = Number($("topUpAmount").value);
+  document.querySelectorAll("[data-topup-amount]").forEach((button) => {
+    button.classList.toggle("is-selected", Number(button.dataset.topupAmount) === amount);
+  });
+}
+
+$("topUpAmount").addEventListener("input", () => {
+  $("topUpError").textContent = "";
+  syncTopUpPresets();
+});
+$("topUpCard").addEventListener("input", () => ($("topUpCardError").textContent = ""));
+
+document.querySelectorAll("[data-topup-amount]").forEach((button) => {
+  button.onclick = () => {
+    $("topUpAmount").value = button.dataset.topupAmount;
+    $("topUpError").textContent = "";
+    syncTopUpPresets();
+    $("topUpAmount").focus();
+  };
+});
+
 $("payForm").onsubmit = (e) => {
   e.preventDefault();
-  const amount = Number(new FormData(e.target).get("amount"));
-  Nexum.topUpMoney(user().id, amount);
+  const data = new FormData(e.target);
+  const amountValue = String(data.get("amount") || "").trim();
+  const amount = Number(amountValue);
+  const card = String(data.get("card") || "").trim();
+  $("topUpError").textContent = "";
+  $("topUpCardError").textContent = "";
+  if (!amountValue) {
+    $("topUpError").textContent = "Введите сумму пополнения";
+    $("topUpAmount").focus();
+    return;
+  }
+  if (!Number.isInteger(amount)) {
+    $("topUpError").textContent = "Введите сумму в целых рублях";
+    $("topUpAmount").focus();
+    return;
+  }
+  if (amount < Nexum.MIN_TOP_UP) {
+    $("topUpError").textContent = `Минимальная сумма пополнения — ${Nexum.MIN_TOP_UP} ₽`;
+    $("topUpAmount").focus();
+    return;
+  }
+  if (!card) {
+    $("topUpCardError").textContent = "Введите номер карты";
+    $("topUpCard").focus();
+    return;
+  }
+  const result = Nexum.topUpMoney(user().id, amount);
+  if (!result) {
+    $("topUpError").textContent = "Не удалось пополнить счёт. Проверьте введённую сумму.";
+    return;
+  }
   $("payModal").classList.add("hidden");
   toast(`Зачислено ${amount} ₽ и ${Math.round(amount * 0.05)} ₽ бонусами`);
   render();
 };
-$("topBonusInfo").onclick = () =>
-  info("Бонусный счёт", "Бонусы нельзя купить картой. 5% с каждого пополнения основного счёта падают сюда. Админ тоже может начислить бонусы.");
 
 $("startSession").onclick = openPackagePicker;
 
@@ -325,12 +414,12 @@ document.addEventListener("keydown", (e) => {
 
 $("blockChat").onclick = () => {
   $("blockModal").classList.add("hidden");
-  openChat();
+  openBlockedChat();
 };
 $("toDesktop").onclick = () => info("Рабочий стол", "В демо оболочка клуба не сворачивается в Windows. Это кнопка как в клиенте LANGAME.");
 $("pickGame").onclick = () => info("Выбрать игру", "Каталог игр появится после старта сессии. Сейчас это заглушка интерфейса.");
 $("report").onclick = () => {
-  openChat();
+  showRightPanel("chat");
   const u = user();
   Nexum.sendChat({
     userId: u.id,
@@ -338,7 +427,7 @@ $("report").onclick = () => {
     fromName: u.name,
     text: "Сообщение о проблеме с ПК / сессией.",
   });
-  drawChat();
+  drawRightChat(true);
 };
 $("closeInfo").onclick = () => $("infoModal").classList.add("hidden");
 

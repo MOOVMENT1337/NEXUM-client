@@ -19,15 +19,15 @@
         <button class="on" id="tabLogin">Вход</button>
         <button id="tabReg">Регистрация</button>
       </div>
-      <form class="form" id="form">
+      <form class="form" id="form" autocomplete="on">
         <label class="reg-only hidden">ФИО
-          <input name="name" placeholder="Иванов Иван Иванович" />
+          <input name="name" placeholder="Иванов Иван Иванович" autocomplete="name" />
         </label>
         <label>Email
-          <input name="email" type="email" required placeholder="you@mail.ru" />
+          <input name="email" type="email" required placeholder="you@mail.ru" autocomplete="username" />
         </label>
         <label>Пароль
-          <input name="pass" type="password" required minlength="4" />
+          <input name="pass" type="password" required minlength="4" autocomplete="current-password" />
         </label>
         <p class="err" id="err"></p>
         <button class="btn btn-red" type="submit">Продолжить</button>
@@ -46,6 +46,7 @@
       document.getElementById("tabLogin").classList.toggle("on", m === "login");
       document.getElementById("tabReg").classList.toggle("on", m === "reg");
       document.querySelector(".reg-only").classList.toggle("hidden", m !== "reg");
+      form.elements.pass.setAttribute("autocomplete", m === "reg" ? "new-password" : "current-password");
     }
     form.onsubmit = (e) => {
       e.preventDefault();
